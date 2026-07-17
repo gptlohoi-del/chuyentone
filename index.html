@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -8,13 +7,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: #f4f7f6;
             color: #333;
             margin: 0;
             padding: 20px;
             /* Thêm padding dưới cùng để khi cuộn không bị bảng nốt nhạc che mất nội dung */
-            padding-bottom: 250px; 
+            padding-bottom: 300px; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -140,13 +139,14 @@
             transition: background-color 0.2s;
         }
 
+        /* ĐÃ ĐỔI FONT Ở ĐÂY SANG KHÔNG CHÂN */
         textarea, .output-div {
             width: 100%;
             height: 140px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             font-size: 1.1em;
             font-weight: bold;
             box-sizing: border-box;
@@ -180,7 +180,7 @@
             left: 0;
             width: 100%;
             background: #fdfdfd;
-            padding: 15px 10px 20px 10px; /* Thêm padding dưới phòng viền điện thoại */
+            padding: 10px 10px 20px 10px; 
             border-top: 2px solid #3498db;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
             z-index: 9999;
@@ -188,13 +188,14 @@
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
+            transition: bottom 0.1s ease-out; /* Mượt mà khi di chuyển */
         }
         #note-board-container {
             display: flex;
             flex-direction: column;
             gap: 8px;
             width: 100%; 
-            max-width: 600px; /* Giới hạn độ rộng để đẹp trên PC */
+            max-width: 600px;
         }
         .board-header {
             max-width: 600px;
@@ -204,7 +205,22 @@
             align-items: center;
             margin-bottom: 10px;
         }
-        .board-header h4 { margin: 0; color: #34495e; font-size: 0.95em; }
+        .board-header-left h4 { margin: 0; color: #34495e; font-size: 0.95em; }
+        .board-header-left span { font-size: 0.8em; color: #7f8c8d; }
+        
+        /* Nút rút gọn/mở rộng */
+        .toggle-board-btn {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            padding: 5px 12px;
+            border-radius: 6px;
+            color: #2c3e50;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .toggle-board-btn:hover { background-color: #bdc3c7; }
 
         .note-row {
             display: grid;
@@ -217,7 +233,7 @@
         .note-cell {
             background: #f1f2f6;
             border: 1px solid #ced6e0;
-            padding: 12px 0; /* Tăng diện tích chạm */
+            padding: 12px 0; 
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
@@ -297,7 +313,6 @@
                         Nhập nốt nhạc
                         <button id="toggle-kbd-btn" class="kbd-toggle-btn" onclick="toggleKeyboard()">Bàn phím thiết bị: ĐANG TẮT</button>
                     </h3>
-                    <!-- Thuộc tính readonly giúp chặn bàn phím điện thoại nảy lên theo mặc định -->
                     <textarea id="input-text" placeholder="Gõ trực tiếp hoặc dùng bảng nốt bên dưới..." readonly></textarea>
                 </div>
                 
@@ -322,11 +337,15 @@
         </div>
     </div>
 
-    <!-- BẢNG NỐT NHẠC ĐƯỢC ĐƯA RA NGOÀI ĐỂ FIXED DƯỚI ĐÁY MÀN HÌNH -->
+    <!-- BẢNG NỐT NHẠC FIXED DƯỚI ĐÁY MÀN HÌNH -->
     <div id="note-board-wrapper">
         <div class="board-header">
-            <h4>Bảng nốt Tone <strong id="current-tone-label" style="color: #e74c3c;">...</strong></h4>
-            <span style="font-size: 0.8em; color: #7f8c8d;">(Chạm để nhập nốt)</span>
+            <div class="board-header-left">
+                <h4>Bảng nốt Tone <strong id="current-tone-label" style="color: #e74c3c;">...</strong></h4>
+                <span>(Chạm để nhập nốt)</span>
+            </div>
+            <!-- Nút rút gọn / mở rộng -->
+            <button id="toggle-board-btn" class="toggle-board-btn" onclick="toggleNoteBoard()">▼ Thu gọn</button>
         </div>
         <div id="note-board-container"></div>
     </div>
@@ -355,7 +374,6 @@
             "Cm": "C D Eb F G Ab Bb", "Gm": "G A Bb C D Eb F", "Dm": "D E F G A Bb C"
         };
 
-        // BỘ TỪ ĐIỂN MAP NỐT SANG TÊN SOLFEGE CÓ DẤU THEO YÊU CẦU
         const solfegeMap = {
             "C":  { low: "đồ", mid: "Đô", high: "ĐỐ" },
             "C#": { low: "đồ#", mid: "Đô#", high: "ĐỐ#" },
@@ -390,8 +408,25 @@
 
         let state = { source: null, target: "C" };
         let isDeviceKeyboardEnabled = false;
+        let isBoardCollapsed = false;
 
-        // HÀM BẬT/TẮT BÀN PHÍM THIẾT BỊ
+        // --- Hàm Thu gọn / Mở rộng bảng nốt ---
+        function toggleNoteBoard() {
+            const container = document.getElementById('note-board-container');
+            const btn = document.getElementById('toggle-board-btn');
+            
+            isBoardCollapsed = !isBoardCollapsed;
+            
+            if (isBoardCollapsed) {
+                container.style.display = 'none';
+                btn.textContent = "▲ Mở rộng";
+            } else {
+                container.style.display = 'flex';
+                btn.textContent = "▼ Thu gọn";
+            }
+            updateBoardPosition();
+        }
+
         function toggleKeyboard() {
             const textarea = document.getElementById('input-text');
             const btn = document.getElementById('toggle-kbd-btn');
@@ -410,13 +445,35 @@
             }
         }
 
+        // --- Cập nhật vị trí bảng nốt khi bàn phím ảo đẩy lên ---
+        function updateBoardPosition() {
+            const wrapper = document.getElementById('note-board-wrapper');
+            if (window.visualViewport && wrapper.style.display !== 'none') {
+                const offset = window.innerHeight - window.visualViewport.height;
+                wrapper.style.bottom = Math.max(0, offset) + 'px';
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateBoardPosition);
+        }
+        // --------------------------------------------------------
+
         function renderNoteBoard(key) {
             const wrapper = document.getElementById('note-board-wrapper');
             const container = document.getElementById('note-board-container');
             const label = document.getElementById('current-tone-label');
             const inputText = document.getElementById('input-text');
+            const toggleBtn = document.getElementById('toggle-board-btn');
             
-            wrapper.style.display = 'flex'; // Hiển thị bảng nốt nhạc neo dưới đáy
+            // Luôn mở rộng bảng khi chọn tone mới
+            isBoardCollapsed = false;
+            container.style.display = 'flex';
+            toggleBtn.textContent = "▼ Thu gọn";
+            
+            wrapper.style.display = 'flex'; 
+            updateBoardPosition(); 
+
             label.textContent = key;
             container.innerHTML = '';
 
@@ -450,7 +507,7 @@
                         inputText.value += btn.textContent + ' ';
                         processTranspose();
                         
-                        // Scroll textarea to bottom automatically when typing
+                        // Kéo thanh cuộn ô nhập liệu xuống dưới cùng
                         inputText.scrollTop = inputText.scrollHeight;
                     };
                     
@@ -547,9 +604,8 @@
                         let newBaseVal = newAbsoluteVal % 12;
                         if (newBaseVal < 0) newBaseVal += 12; 
                         
-                        let newNoteStr = targetNoteSet[newBaseVal]; // ví dụ: "C#", "Db"
+                        let newNoteStr = targetNoteSet[newBaseVal]; 
                         
-                        // Format key để tra từ điển solfege (chữ cái đầu viết hoa, chữ b viết thường)
                         let dictKey = newNoteStr;
                         if (dictKey.length === 2) {
                             dictKey = dictKey[0].toUpperCase() + dictKey[1].toLowerCase();
@@ -559,7 +615,6 @@
 
                         let finalString = "";
 
-                        // LOGIC KẾT XUẤT: Theo Solfege hoặc Ký tự gốc
                         if (useSolfege && solfegeMap[dictKey]) {
                             if (newOctave <= 3) {
                                 finalString = solfegeMap[dictKey].low;
@@ -567,7 +622,6 @@
                                 finalString = solfegeMap[dictKey].mid;
                             } else {
                                 finalString = solfegeMap[dictKey].high;
-                                // Giữ lại dấu chấm nếu quãng vượt quá 5
                                 if (newOctave > 5) finalString += ".".repeat(newOctave - 5);
                             }
                         } else {
@@ -586,7 +640,6 @@
                 return { isNote: false, text: token, original: token };
             });
 
-            // Logic tính màu sắc khoảng cách nốt (giữ nguyên)
             const noteIndices = [];
             parsedData.forEach((item, index) => {
                 if (item.isNote) noteIndices.push(index);
@@ -664,7 +717,7 @@
             exportDiv.style.backgroundColor = '#f8f9fa';
             exportDiv.style.padding = '40px';
             exportDiv.style.boxSizing = 'border-box';
-            exportDiv.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            exportDiv.style.fontFamily = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
             const titleEl = document.createElement('h2');
             titleEl.style.textAlign = 'center';
@@ -686,7 +739,8 @@
 
             const notesEl = document.createElement('div');
             notesEl.style.whiteSpace = 'pre-wrap'; 
-            notesEl.style.fontFamily = "'Courier New', Courier, monospace";
+            /* Cập nhật font chữ cho ảnh xuất ra */
+            notesEl.style.fontFamily = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
             notesEl.style.fontSize = '1.4em'; 
             notesEl.style.lineHeight = '1.8';
             notesEl.style.fontWeight = 'bold';
