@@ -139,7 +139,6 @@
             transition: background-color 0.2s;
         }
 
-        /* ĐÃ ĐỔI FONT Ở ĐÂY SANG KHÔNG CHÂN */
         textarea, .output-div {
             width: 100%;
             height: 140px;
@@ -188,7 +187,7 @@
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
-            transition: bottom 0.1s ease-out; /* Mượt mà khi di chuyển */
+            /* Đã bỏ thuộc tính transition để bảng không bị trượt lag khi cuộn trang */
         }
         #note-board-container {
             display: flex;
@@ -208,7 +207,6 @@
         .board-header-left h4 { margin: 0; color: #34495e; font-size: 0.95em; }
         .board-header-left span { font-size: 0.8em; color: #7f8c8d; }
         
-        /* Nút rút gọn/mở rộng */
         .toggle-board-btn {
             background-color: #ecf0f1;
             border: 1px solid #bdc3c7;
@@ -344,7 +342,6 @@
                 <h4>Bảng nốt Tone <strong id="current-tone-label" style="color: #e74c3c;">...</strong></h4>
                 <span>(Chạm để nhập nốt)</span>
             </div>
-            <!-- Nút rút gọn / mở rộng -->
             <button id="toggle-board-btn" class="toggle-board-btn" onclick="toggleNoteBoard()">▼ Thu gọn</button>
         </div>
         <div id="note-board-container"></div>
@@ -410,7 +407,6 @@
         let isDeviceKeyboardEnabled = false;
         let isBoardCollapsed = false;
 
-        // --- Hàm Thu gọn / Mở rộng bảng nốt ---
         function toggleNoteBoard() {
             const container = document.getElementById('note-board-container');
             const btn = document.getElementById('toggle-board-btn');
@@ -445,19 +441,27 @@
             }
         }
 
-        // --- Cập nhật vị trí bảng nốt khi bàn phím ảo đẩy lên ---
+        // --- Cập nhật vị trí bảng nốt khi bàn phím ảo đẩy lên & cuộn trang ---
         function updateBoardPosition() {
             const wrapper = document.getElementById('note-board-wrapper');
             if (window.visualViewport && wrapper.style.display !== 'none') {
-                const offset = window.innerHeight - window.visualViewport.height;
-                wrapper.style.bottom = Math.max(0, offset) + 'px';
+                // Tính khoảng cách cần bù để neo vào đáy phần nhìn thấy được (Visual Viewport).
+                // Bù trừ thêm offsetTop (độ lệch sinh ra khi người dùng cố tình cuộn trang lúc bàn phím đang bật)
+                let offsetBottom = window.innerHeight - (window.visualViewport.height + window.visualViewport.offsetTop);
+                
+                // Đảm bảo thông số không bị số âm
+                wrapper.style.bottom = Math.max(0, offsetBottom) + 'px';
             }
         }
 
+        // Lắng nghe resize (lúc bàn phím bật lên / hạ xuống) và scroll (lúc cuộn trang)
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', updateBoardPosition);
+            window.visualViewport.addEventListener('scroll', updateBoardPosition);
         }
-        // --------------------------------------------------------
+        // Dự phòng cho một số trình duyệt không hỗ trợ full visualViewport.scroll
+        window.addEventListener('scroll', updateBoardPosition);
+        // ---------------------------------------------------------------------
 
         function renderNoteBoard(key) {
             const wrapper = document.getElementById('note-board-wrapper');
@@ -466,7 +470,6 @@
             const inputText = document.getElementById('input-text');
             const toggleBtn = document.getElementById('toggle-board-btn');
             
-            // Luôn mở rộng bảng khi chọn tone mới
             isBoardCollapsed = false;
             container.style.display = 'flex';
             toggleBtn.textContent = "▼ Thu gọn";
@@ -507,7 +510,6 @@
                         inputText.value += btn.textContent + ' ';
                         processTranspose();
                         
-                        // Kéo thanh cuộn ô nhập liệu xuống dưới cùng
                         inputText.scrollTop = inputText.scrollHeight;
                     };
                     
@@ -739,7 +741,6 @@
 
             const notesEl = document.createElement('div');
             notesEl.style.whiteSpace = 'pre-wrap'; 
-            /* Cập nhật font chữ cho ảnh xuất ra */
             notesEl.style.fontFamily = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
             notesEl.style.fontSize = '1.4em'; 
             notesEl.style.lineHeight = '1.8';
