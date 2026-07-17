@@ -12,7 +12,6 @@
             color: #333;
             margin: 0;
             padding: 20px;
-            /* Thêm padding dưới cùng để khi cuộn không bị bảng nốt nhạc che mất nội dung */
             padding-bottom: 300px; 
             display: flex;
             flex-direction: column;
@@ -187,7 +186,6 @@
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
-            /* Đã bỏ thuộc tính transition để bảng không bị trượt lag khi cuộn trang */
         }
         #note-board-container {
             display: flex;
@@ -441,27 +439,19 @@
             }
         }
 
-        // --- Cập nhật vị trí bảng nốt khi bàn phím ảo đẩy lên & cuộn trang ---
         function updateBoardPosition() {
             const wrapper = document.getElementById('note-board-wrapper');
             if (window.visualViewport && wrapper.style.display !== 'none') {
-                // Tính khoảng cách cần bù để neo vào đáy phần nhìn thấy được (Visual Viewport).
-                // Bù trừ thêm offsetTop (độ lệch sinh ra khi người dùng cố tình cuộn trang lúc bàn phím đang bật)
                 let offsetBottom = window.innerHeight - (window.visualViewport.height + window.visualViewport.offsetTop);
-                
-                // Đảm bảo thông số không bị số âm
                 wrapper.style.bottom = Math.max(0, offsetBottom) + 'px';
             }
         }
 
-        // Lắng nghe resize (lúc bàn phím bật lên / hạ xuống) và scroll (lúc cuộn trang)
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', updateBoardPosition);
             window.visualViewport.addEventListener('scroll', updateBoardPosition);
         }
-        // Dự phòng cho một số trình duyệt không hỗ trợ full visualViewport.scroll
         window.addEventListener('scroll', updateBoardPosition);
-        // ---------------------------------------------------------------------
 
         function renderNoteBoard(key) {
             const wrapper = document.getElementById('note-board-wrapper');
@@ -501,6 +491,11 @@
                     const btn = document.createElement('div');
                     btn.className = 'note-cell';
                     btn.textContent = setting.transform(n); 
+
+                    // CHẶN HÀNH VI MẤT TIÊU ĐIỂM (FOCUS) KHI CLICK TRÊN CẢ PC & ĐIỆN THOẠI
+                    btn.onmousedown = (e) => {
+                        e.preventDefault(); 
+                    };
                     
                     btn.onclick = () => {
                         let currentVal = inputText.value;
@@ -511,6 +506,11 @@
                         processTranspose();
                         
                         inputText.scrollTop = inputText.scrollHeight;
+
+                        // ÉP FOCUS TRỞ LẠI NGAY LẬP TỨC NẾU CHẾ ĐỘ BÀN PHÍM ĐANG MỞ
+                        if (isDeviceKeyboardEnabled) {
+                            inputText.focus();
+                        }
                     };
                     
                     row.appendChild(btn);
