@@ -470,13 +470,30 @@
             label.textContent = key;
             container.innerHTML = '';
 
-            const baseNotes = scalesDict[key].split(' ');
+            // Đổi thành 'let' để có thể sửa đổi mảng
+            // 1. Dùng biểu thức chính quy /\s+/ để loại bỏ mọi khoảng trắng thừa
+            let baseNotes = scalesDict[key].trim().split(/\s+/);
+            
+            // 2. Tìm vị trí nốt chứa chữ 'C' (bảo vệ bằng cách ép kiểu in hoa chữ cái đầu)
+            const cIndex = baseNotes.findIndex(note => note.charAt(0).toUpperCase() === 'C');
+            
+            // 3. Dịch chuyển mảng theo vòng tròn (xoay nốt C lên đầu)
+            if (cIndex > 0) {
+                baseNotes = baseNotes.slice(cIndex).concat(baseNotes.slice(0, cIndex));
+            }
+            
+            // --- CÁCH MỚI: Ép buộc sắp xếp theo thứ tự C D E F G A B ---
+            const letterOrder = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
+            baseNotes.sort((a, b) => letterOrder[a[0]] - letterOrder[b[0]]);
+            // -----------------------------------------------------------
             
             const octaveSettings = [
                 { name: "Thấp", transform: note => note.toLowerCase() },
                 { name: "Trung", transform: note => note },
                 { name: "Cao", transform: note => note + "." }
             ];
+            
+            // ... (Phần còn lại của hàm giữ nguyên)
             
             octaveSettings.forEach(setting => {
                 const row = document.createElement('div');
@@ -492,7 +509,6 @@
                     btn.className = 'note-cell';
                     btn.textContent = setting.transform(n); 
 
-                    // CHẶN HÀNH VI MẤT TIÊU ĐIỂM (FOCUS) KHI CLICK TRÊN CẢ PC & ĐIỆN THOẠI
                     btn.onmousedown = (e) => {
                         e.preventDefault(); 
                     };
@@ -507,7 +523,6 @@
                         
                         inputText.scrollTop = inputText.scrollHeight;
 
-                        // ÉP FOCUS TRỞ LẠI NGAY LẬP TỨC NẾU CHẾ ĐỘ BÀN PHÍM ĐANG MỞ
                         if (isDeviceKeyboardEnabled) {
                             inputText.focus();
                         }
@@ -518,6 +533,13 @@
                 container.appendChild(row);
             });
         }
+
+
+
+
+
+
+        
 
         function drawWheel(containerId, isSource) {
             const container = document.getElementById(containerId);
