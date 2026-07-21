@@ -314,10 +314,21 @@
                 
                 <div class="text-box result-area">
                     <h3>Kết quả Tone Đích</h3>
-                    <label class="options-group">
-                        <input type="checkbox" id="use-solfege" onchange="processTranspose()">
-                        Hiển thị tên nốt đầy đủ (đồ Rê MÍ...)
-                    </label>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                        <label class="options-group" style="margin-bottom: 0;">
+                            <input type="checkbox" id="use-solfege" onchange="processTranspose()">
+                            Hiển thị tên nốt đầy đủ (đồ Rê MÍ...)
+                        </label>
+                        
+                        <div class="octave-controls" style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 0.9em; font-weight: bold; color: #2c3e50;">Quãng 8:</span>
+                            <button onclick="shiftOctave(-1)" style="background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; width: 24px; height: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center;">-</button>
+                            <span id="octave-display" style="font-weight: bold; font-size: 0.9em; min-width: 20px; text-align: center;">0</span>
+                            <button onclick="shiftOctave(1)" style="background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; width: 24px; height: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center;">+</button>
+                        </div>
+                    </div>
+
                     <div id="output-text" class="output-div"></div>
                     <div class="action-btns" id="action-buttons-group">
                         <button class="copy-btn" onclick="copyResult()">Sao chép</button>
@@ -404,6 +415,14 @@
         let state = { source: null, target: "C" };
         let isDeviceKeyboardEnabled = false;
         let isBoardCollapsed = false;
+        let octaveOffset = 0; 
+
+        function shiftOctave(change) {
+            octaveOffset += change;
+            const display = document.getElementById('octave-display');
+            display.textContent = octaveOffset > 0 ? "+" + octaveOffset : octaveOffset;
+            processTranspose(); 
+        }
 
         function toggleNoteBoard() {
             const container = document.getElementById('note-board-container');
@@ -470,30 +489,22 @@
             label.textContent = key;
             container.innerHTML = '';
 
-            // Đổi thành 'let' để có thể sửa đổi mảng
-            // 1. Dùng biểu thức chính quy /\s+/ để loại bỏ mọi khoảng trắng thừa
             let baseNotes = scalesDict[key].trim().split(/\s+/);
             
-            // 2. Tìm vị trí nốt chứa chữ 'C' (bảo vệ bằng cách ép kiểu in hoa chữ cái đầu)
             const cIndex = baseNotes.findIndex(note => note.charAt(0).toUpperCase() === 'C');
             
-            // 3. Dịch chuyển mảng theo vòng tròn (xoay nốt C lên đầu)
             if (cIndex > 0) {
                 baseNotes = baseNotes.slice(cIndex).concat(baseNotes.slice(0, cIndex));
             }
             
-            // --- CÁCH MỚI: Ép buộc sắp xếp theo thứ tự C D E F G A B ---
             const letterOrder = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
             baseNotes.sort((a, b) => letterOrder[a[0]] - letterOrder[b[0]]);
-            // -----------------------------------------------------------
             
             const octaveSettings = [
                 { name: "Thấp", transform: note => note.toLowerCase() },
                 { name: "Trung", transform: note => note },
-                { name: "Cao", transform: note => note + "." }
+                { name: "Cao", transform: note => note.charAt(0) + "." + note.slice(1) } // Sử dụng . trước dấu hoá luôn
             ];
-            
-            // ... (Phần còn lại của hàm giữ nguyên)
             
             octaveSettings.forEach(setting => {
                 const row = document.createElement('div');
@@ -533,13 +544,6 @@
                 container.appendChild(row);
             });
         }
-
-
-
-
-
-
-        
 
         function drawWheel(containerId, isSource) {
             const container = document.getElementById(containerId);
@@ -604,11 +608,11 @@
             const tokens = inputTxt.split(/(\s+)/);
             
             const parsedData = tokens.map(token => {
-                const match = token.match(/^([a-zA-Z][#bB]?)(['\.]*)$/);
+                const match = token.match(/^([a-zA-Z])(['\.]*)([#bB]?)(['\.]*)$/);
                 
                 if (match) {
-                    const notePart = match[1];
-                    const symbolPart = match[2];
+                    const notePart = match[1] + match[3]; 
+                    const symbolPart = match[2] + match[4]; 
                     const cleanNote = notePart.toUpperCase();
                     
                     if (noteToVal[cleanNote] !== undefined) {
@@ -622,7 +626,7 @@
                         }
                         
                         const absoluteVal = octave * 12 + baseVal;
-                        const newAbsoluteVal = absoluteVal + interval;
+                        const newAbsoluteVal = absoluteVal + interval + (octaveOffset * 12);
                         
                         const newOctave = Math.floor(newAbsoluteVal / 12);
                         let newBaseVal = newAbsoluteVal % 12;
@@ -645,8 +649,16 @@
                             } else if (newOctave === 4) {
                                 finalString = solfegeMap[dictKey].mid;
                             } else {
-                                finalString = solfegeMap[dictKey].high;
-                                if (newOctave > 5) finalString += ".".repeat(newOctave - 5);
+                                let highStr = solfegeMap[dictKey].high;
+                                if (newOctave > 5) {
+                                    if (highStr.endsWith("#") || highStr.endsWith("b")) {
+                                        finalString = highStr.slice(0, -1) + ".".repeat(newOctave - 5) + highStr.slice(-1);
+                                    } else {
+                                        finalString = highStr + ".".repeat(newOctave - 5);
+                                    }
+                                } else {
+                                    finalString = highStr;
+                                }
                             }
                         } else {
                             if (newOctave <= 3) {
@@ -654,7 +666,7 @@
                             } else if (newOctave === 4) {
                                 finalString = newNoteStr; 
                             } else {
-                                finalString = newNoteStr + ".".repeat(newOctave - 4);
+                                finalString = newNoteStr.charAt(0) + ".".repeat(newOctave - 4) + newNoteStr.slice(1);
                             }
                         }
                         
